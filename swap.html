@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoubleGG | Swap</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<style>
+  :root {
+    --black: #080808; --card: #111111; --gold: #FFD700; --gold2: #FFA500;
+    --white: #f5f5f5; --gray: #888; --border: rgba(255,215,0,0.15);
+    --green: #00c853; --red: #ff5252;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--black); color:var(--white); font-family:'DM Sans',sans-serif; min-height:100vh; }
+
+  nav {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1.2rem 3rem; border-bottom:1px solid var(--border);
+    background:rgba(8,8,8,0.95);
+  }
+  .logo { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; color:var(--gold); text-decoration:none; }
+  .nav-links { display:flex; gap:2rem; align-items:center; }
+  .nav-links a { color:var(--gray); text-decoration:none; font-size:0.9rem; transition:color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color:var(--gold); }
+  .connect-btn {
+    background:linear-gradient(135deg,var(--gold),var(--gold2));
+    color:#000; font-weight:700; padding:0.55rem 1.4rem;
+    border-radius:50px; border:none; cursor:pointer; font-size:0.85rem;
+    font-family:'DM Sans',sans-serif; transition:opacity 0.2s;
+  }
+  .connect-btn:hover { opacity:0.85; }
+  .connect-btn.connected { background:rgba(0,200,83,0.15); color:var(--green); border:1px solid rgba(0,200,83,0.3); }
+
+  /* MODAL */
+  .modal-overlay {
+    display:none; position:fixed; inset:0; z-index:1000;
+    background:rgba(0,0,0,0.8); backdrop-filter:blur(8px);
+    justify-content:center; align-items:center;
+  }
+  .modal-overlay.show { display:flex; }
+  .modal {
+    background:#111; border:1px solid var(--border); border-radius:20px;
+    padding:2rem; width:90%; max-width:380px; position:relative;
+  }
+  .modal-title { font-family:'Syne',sans-serif; font-size:1.2rem; font-weight:800; margin-bottom:0.5rem; text-align:center; }
+  .modal-sub { font-size:0.8rem; color:var(--gray); text-align:center; margin-bottom:1.5rem; }
+  .modal-close { position:absolute; top:1rem; right:1rem; background:none; border:none; color:var(--gray); font-size:1.2rem; cursor:pointer; }
+  .wallet-option {
+    display:flex; align-items:center; gap:1rem;
+    background:rgba(255,255,255,0.04); border:1px solid var(--border);
+    border-radius:12px; padding:1rem 1.2rem; cursor:pointer; transition:all 0.2s; margin-bottom:0.8rem;
+  }
+  .wallet-option:hover { border-color:rgba(255,215,0,0.4); background:rgba(255,215,0,0.05); }
+  .wallet-icon-placeholder { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#f6851b,#e2761b); display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
+  .wallet-name { font-weight:700; font-size:0.95rem; }
+  .wallet-desc { font-size:0.75rem; color:var(--gray); margin-top:0.2rem; }
+  .wallet-status { margin-left:auto; font-size:0.72rem; padding:0.3rem 0.7rem; border-radius:20px; }
+  .status-detected { background:rgba(0,200,83,0.15); color:var(--green); border:1px solid rgba(0,200,83,0.3); }
+  .status-not-found { background:rgba(255,82,82,0.1); color:var(--red); border:1px solid rgba(255,82,82,0.2); }
+  .modal-install { display:none; text-align:center; padding:1rem; background:rgba(255,82,82,0.05); border:1px solid rgba(255,82,82,0.2); border-radius:12px; margin-top:0.5rem; }
+  .modal-install p { font-size:0.82rem; color:var(--gray); margin-bottom:0.8rem; }
+  .install-btn { background:linear-gradient(135deg,#f6851b,#e2761b); color:#fff; font-weight:700; padding:0.6rem 1.5rem; border-radius:8px; border:none; cursor:pointer; font-size:0.85rem; text-decoration:none; display:inline-block; }
+
+  /* WALLET BAR */
+  .wallet-bar { display:none; background:var(--card); border-bottom:1px solid var(--border); padding:0.8rem 3rem; justify-content:space-between; align-items:center; }
+  .wallet-bar.show { display:flex; }
+  .wallet-bar-left { display:flex; align-items:center; gap:0.8rem; }
+  .wallet-dot { width:8px; height:8px; border-radius:50%; background:var(--green); }
+  .wallet-addr { font-size:0.8rem; color:var(--gray); }
+  .wallet-bnb { font-size:0.85rem; font-weight:700; color:var(--gold); }
+  .disconnect-btn { background:none; border:1px solid rgba(255,82,82,0.3); color:var(--red); padding:0.3rem 0.8rem; border-radius:6px; cursor:pointer; font-size:0.75rem; font-family:'DM Sans',sans-serif; }
+
+  .hero {
+    text-align:center; padding:5rem 2rem 3rem;
+    background:radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.06) 0%, transparent 70%);
+  }
+  .hero-tag { font-size:0.7rem; color:var(--gold); letter-spacing:3px; text-transform:uppercase; margin-bottom:1rem; }
+  .hero h1 { font-family:'Syne',sans-serif; font-size:clamp(2rem,5vw,3.5rem); font-weight:800; margin-bottom:1rem; }
+  .hero h1 span { background:linear-gradient(135deg,var(--gold),var(--gold2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero p { color:var(--gray); font-size:1rem; max-width:500px; margin:0 auto; line-height:1.7; }
+
+  .main { max-width:480px; margin:0 auto; padding:3rem 2rem 6rem; }
+
+  /* SWAP CARD */
+  .swap-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:20px; padding:2rem;
+  }
+  .swap-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+  .swap-title { font-family:'Syne',sans-serif; font-size:1.2rem; font-weight:800; }
+  .swap-settings { color:var(--gray); cursor:pointer; font-size:1.2rem; }
+
+  .token-box {
+    background:rgba(255,255,255,0.04); border:1px solid var(--border);
+    border-radius:14px; padding:1.2rem; margin-bottom:0.5rem;
+  }
+  .token-box-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem; }
+  .token-box-label { font-size:0.78rem; color:var(--gray); }
+  .token-balance { font-size:0.78rem; color:var(--gray); }
+  .token-balance span { color:var(--gold); cursor:pointer; }
+  .token-box-bottom { display:flex; justify-content:space-between; align-items:center; }
+  .token-amount {
+    background:none; border:none; color:var(--white); font-size:1.6rem;
+    font-family:'Syne',sans-serif; font-weight:700; width:60%; outline:none;
+  }
+  .token-amount::placeholder { color:rgba(255,255,255,0.2); }
+  .token-selector {
+    display:flex; align-items:center; gap:0.5rem;
+    background:rgba(255,255,255,0.06); border:1px solid var(--border);
+    border-radius:50px; padding:0.4rem 0.8rem; cursor:pointer;
+  }
+  .token-icon { width:24px; height:24px; border-radius:50%; }
+  .token-symbol { font-weight:700; font-size:0.9rem; }
+  .token-usd { font-size:0.75rem; color:var(--gray); margin-top:0.4rem; }
+
+  .swap-arrow-btn {
+    display:flex; justify-content:center; margin:0.3rem 0;
+  }
+  .arrow-circle {
+    width:36px; height:36px; border-radius:50%;
+    background:var(--card); border:2px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--gold); font-size:1rem;
+    transition:all 0.2s;
+  }
+  .arrow-circle:hover { border-color:var(--gold); transform:rotate(180deg); }
+
+  /* SWAP INFO */
+  .swap-info { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:1rem; margin:1rem 0; }
+  .swap-info-row { display:flex; justify-content:space-between; font-size:0.8rem; padding:0.3rem 0; }
+  .swap-info-row .label { color:var(--gray); }
+  .swap-info-row .value { font-weight:600; }
+
+  .swap-btn {
+    width:100%; background:linear-gradient(135deg,var(--gold),var(--gold2));
+    color:#000; font-weight:700; padding:1rem; border-radius:12px;
+    border:none; cursor:pointer; font-size:1rem; font-family:'Syne',sans-serif;
+    transition:opacity 0.2s; margin-top:0.5rem;
+  }
+  .swap-btn:hover { opacity:0.85; }
+  .swap-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .msg { text-align:center; padding:1rem; border-radius:10px; margin-top:1rem; font-size:0.85rem; display:none; }
+  .msg.success { background:rgba(0,200,83,0.1); border:1px solid rgba(0,200,83,0.3); color:var(--green); }
+  .msg.error { background:rgba(255,82,82,0.1); border:1px solid rgba(255,82,82,0.2); color:var(--red); }
+  .msg.show { display:block; }
+
+  .price-tag { text-align:center; font-size:0.78rem; color:var(--gray); margin-top:1rem; }
+  .price-tag span { color:var(--gold); }
+
+  @media(max-width:600px) { nav { padding:1rem; } .nav-links { display:none; } .wallet-bar { padding:0.8rem 1rem; } }
+</style>
+</head>
+<body>
+
+<!-- WALLET MODAL -->
+<div class="modal-overlay" id="walletModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Connect Wallet</div>
+    <div class="modal-sub">Choose your wallet to continue</div>
+    <div class="wallet-option" onclick="connectMetaMask()">
+      <div class="wallet-icon-placeholder">🦊</div>
+      <div>
+        <div class="wallet-name">MetaMask</div>
+        <div class="wallet-desc">Connect using MetaMask wallet</div>
+      </div>
+      <div class="wallet-status" id="mmStatus">Checking...</div>
+    </div>
+    <div class="modal-install" id="installNotice">
+      <p>MetaMask is not installed. Install it to swap $DLGG.</p>
+      <a class="install-btn" href="https://metamask.io/download/" target="_blank">Install MetaMask</a>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <a href="index.html" class="logo">DOUBLEGG</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="swap.html" class="active">Swap</a>
+    <a href="staking.html">Staking</a>
+  </div>
+  <button class="connect-btn" id="connectBtn" onclick="openModal()">Connect Wallet</button>
+</nav>
+
+<div class="wallet-bar" id="walletBar">
+  <div class="wallet-bar-left">
+    <div class="wallet-dot"></div>
+    <span class="wallet-addr" id="walletAddr">-</span>
+    <span class="wallet-bnb" id="walletBnb">0 BNB</span>
+  </div>
+  <button class="disconnect-btn" onclick="disconnect()">Disconnect</button>
+</div>
+
+<div class="hero">
+  <div class="hero-tag">No VPN Needed</div>
+  <h1>Swap BNB for <span>$DLGG</span></h1>
+  <p>Buy $DLGG directly here. No redirects, no VPN required.</p>
+</div>
+
+<div class="main">
+  <div class="swap-card">
+    <div class="swap-header">
+      <div class="swap-title">Swap</div>
+      <div class="swap-settings" title="Slippage: 1%">⚙️ 1%</div>
+    </div>
+
+    <!-- FROM -->
+    <div class="token-box">
+      <div class="token-box-top">
+        <div class="token-box-label">From</div>
+        <div class="token-balance">Balance: <span id="bnbBalance" onclick="setMaxBnb()">0 BNB</span></div>
+      </div>
+      <div class="token-box-bottom">
+        <input type="number" class="token-amount" id="bnbAmount" placeholder="0.0" oninput="calcOutput()">
+        <div class="token-selector">
+          <span style="font-size:1.2rem;">🟡</span>
+          <span class="token-symbol">BNB</span>
+        </div>
+      </div>
+      <div class="token-usd" id="bnbUsd">≈ $0.00</div>
+    </div>
+
+    <!-- ARROW -->
+    <div class="swap-arrow-btn">
+      <div class="arrow-circle">↓</div>
+    </div>
+
+    <!-- TO -->
+    <div class="token-box">
+      <div class="token-box-top">
+        <div class="token-box-label">To</div>
+        <div class="token-balance">Balance: <span id="dlggBalance">0 DLGG</span></div>
+      </div>
+      <div class="token-box-bottom">
+        <input type="number" class="token-amount" id="dlggAmount" placeholder="0.0" readonly>
+        <div class="token-selector">
+          <span style="font-size:1.2rem;">🏆</span>
+          <span class="token-symbol">DLGG</span>
+        </div>
+      </div>
+      <div class="token-usd" id="dlggUsd">≈ $0.00</div>
+    </div>
+
+    <!-- SWAP INFO -->
+    <div class="swap-info" id="swapInfo" style="display:none;">
+      <div class="swap-info-row"><span class="label">Rate</span><span class="value" id="rateInfo">-</span></div>
+      <div class="swap-info-row"><span class="label">Slippage</span><span class="value">1%</span></div>
+      <div class="swap-info-row"><span class="label">Min. Received</span><span class="value" id="minReceived">-</span></div>
+      <div class="swap-info-row"><span class="label">Price Impact</span><span class="value" id="priceImpact">~</span></div>
+    </div>
+
+    <button class="swap-btn" id="swapBtn" onclick="doSwap()">Connect Wallet to Swap</button>
+    <div class="msg" id="swapMsg"></div>
+
+    <div class="price-tag">1 BNB = <span id="priceDisplay">...</span> DLGG</div>
+  </div>
+</div>
+
+<script>
+const DLGG = "0x8FB2EB5888a46C73264595732e868C2DDc9F5fB8";
+const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095d";
+const ROUTER = "0x10ED43C718714eb63d5aA57B78B54704E256024E"; // PancakeSwap V2
+
+const ROUTER_ABI = [
+  "function getAmountsOut(uint amountIn, address[] calldata path) view returns (uint[] memory amounts)",
+  "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) payable returns (uint[] memory amounts)"
+];
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)"
+];
+
+let provider, signer, userAddress;
+let bnbPrice = 580;
+let dlggPerBnb = 0;
+
+async function fetchPrice() {
+  try {
+    const p = new ethers.JsonRpcProvider("https://bsc-dataseed.binance.org");
+    const router = new ethers.Contract(ROUTER, ROUTER_ABI, p);
+    const amounts = await router.getAmountsOut(ethers.parseEther("1"), [WBNB, DLGG]);
+    dlggPerBnb = parseFloat(ethers.formatUnits(amounts[1], 18));
+    document.getElementById("priceDisplay").textContent = dlggPerBnb.toLocaleString(undefined, {maximumFractionDigits:2}) + " DLGG";
+  } catch(e) {
+    document.getElementById("priceDisplay").textContent = "~";
+  }
+}
+
+async function calcOutput() {
+  const bnb = parseFloat(document.getElementById("bnbAmount").value) || 0;
+  if (!bnb || !dlggPerBnb) {
+    document.getElementById("dlggAmount").value = "";
+    document.getElementById("swapInfo").style.display = "none";
+    return;
+  }
+  const dlggOut = bnb * dlggPerBnb;
+  const minOut = dlggOut * 0.99; // 1% slippage
+  document.getElementById("dlggAmount").value = dlggOut.toFixed(2);
+  document.getElementById("bnbUsd").textContent = "≈ $" + (bnb * bnbPrice).toFixed(2);
+  document.getElementById("dlggUsd").textContent = "≈ $" + (dlggOut * (bnbPrice / dlggPerBnb)).toFixed(6);
+  document.getElementById("rateInfo").textContent = "1 BNB = " + dlggPerBnb.toFixed(2) + " DLGG";
+  document.getElementById("minReceived").textContent = minOut.toFixed(2) + " DLGG";
+  document.getElementById("priceImpact").textContent = bnb > 0.1 ? "~" + (bnb * 2).toFixed(2) + "%" : "< 0.1%";
+  document.getElementById("swapInfo").style.display = "block";
+}
+
+function setMaxBnb() {
+  if (!provider || !userAddress) return;
+  const bal = document.getElementById("bnbBalance").textContent.replace(" BNB","");
+  const max = Math.max(0, parseFloat(bal) - 0.002).toFixed(4);
+  document.getElementById("bnbAmount").value = max;
+  calcOutput();
+}
+
+function openModal() {
+  document.getElementById("walletModal").classList.add("show");
+  const hasMetaMask = !!window.ethereum;
+  const status = document.getElementById("mmStatus");
+  const notice = document.getElementById("installNotice");
+  if (hasMetaMask) {
+    status.textContent = "Detected ✓";
+    status.className = "wallet-status status-detected";
+    notice.style.display = "none";
+  } else {
+    status.textContent = "Open App";
+    status.className = "wallet-status status-detected";
+    notice.style.display = "block";
+  }
+}
+
+function closeModal() {
+  document.getElementById("walletModal").classList.remove("show");
+}
+
+async function connectMetaMask() {
+  if (!window.ethereum) {
+    window.location.href = "metamask://dapp/doubleggtoken.github.io/DoubleGG/swap.html";
+    return;
+  }
+  try {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    userAddress = await signer.getAddress();
+
+    const bnbBal = await provider.getBalance(userAddress);
+    const bnbFormatted = parseFloat(ethers.formatEther(bnbBal)).toFixed(4);
+
+    const dlgg = new ethers.Contract(DLGG, ERC20_ABI, provider);
+    const dlggBal = await dlgg.balanceOf(userAddress);
+    const dlggFormatted = parseFloat(ethers.formatUnits(dlggBal,18)).toFixed(2);
+
+    document.getElementById("connectBtn").textContent = userAddress.slice(0,6)+"..."+userAddress.slice(-4);
+    document.getElementById("connectBtn").classList.add("connected");
+    document.getElementById("walletAddr").textContent = userAddress.slice(0,6)+"..."+userAddress.slice(-4);
+    document.getElementById("walletBnb").textContent = bnbFormatted + " BNB";
+    document.getElementById("walletBar").classList.add("show");
+    document.getElementById("bnbBalance").textContent = bnbFormatted + " BNB";
+    document.getElementById("dlggBalance").textContent = Number(dlggFormatted).toLocaleString() + " DLGG";
+    document.getElementById("swapBtn").textContent = "Swap";
+
+    closeModal();
+  } catch(e) { console.error(e); }
+}
+
+function disconnect() {
+  provider = null; signer = null; userAddress = null;
+  document.getElementById("connectBtn").textContent = "Connect Wallet";
+  document.getElementById("connectBtn").classList.remove("connected");
+  document.getElementById("walletBar").classList.remove("show");
+  document.getElementById("swapBtn").textContent = "Connect Wallet to Swap";
+  document.getElementById("bnbBalance").textContent = "0 BNB";
+  document.getElementById("dlggBalance").textContent = "0 DLGG";
+}
+
+function showMsg(text, type) {
+  const el = document.getElementById("swapMsg");
+  el.textContent = text; el.className = "msg " + type + " show";
+  setTimeout(() => el.classList.remove("show"), 6000);
+}
+
+async function doSwap() {
+  if (!signer) { openModal(); return; }
+  const bnbInput = document.getElementById("bnbAmount").value;
+  if (!bnbInput || parseFloat(bnbInput) <= 0) { showMsg("Please enter BNB amount.", "error"); return; }
+
+  const bnbAmount = ethers.parseEther(bnbInput);
+  const dlggOut = parseFloat(document.getElementById("dlggAmount").value);
+  const minOut = ethers.parseUnits((dlggOut * 0.99).toFixed(0), 18);
+  const deadline = Math.floor(Date.now()/1000) + 300;
+
+  try {
+    document.getElementById("swapBtn").disabled = true;
+    document.getElementById("swapBtn").textContent = "Swapping...";
+
+    const router = new ethers.Contract(ROUTER, ROUTER_ABI, signer);
+    const tx = await router.swapExactETHForTokens(
+      minOut,
+      [WBNB, DLGG],
+      userAddress,
+      deadline,
+      { value: bnbAmount }
+    );
+    await tx.wait();
+
+    showMsg("✅ Swap successful! " + dlggOut.toFixed(2) + " DLGG sent to your wallet.", "success");
+    document.getElementById("bnbAmount").value = "";
+    document.getElementById("dlggAmount").value = "";
+    document.getElementById("swapInfo").style.display = "none";
+
+    // Refresh balances
+    const bnbBal = await provider.getBalance(userAddress);
+    document.getElementById("bnbBalance").textContent = parseFloat(ethers.formatEther(bnbBal)).toFixed(4) + " BNB";
+    const dlgg = new ethers.Contract(DLGG, ERC20_ABI, provider);
+    const dlggBal = await dlgg.balanceOf(userAddress);
+    document.getElementById("dlggBalance").textContent = parseFloat(ethers.formatUnits(dlggBal,18)).toFixed(2) + " DLGG";
+
+  } catch(e) {
+    showMsg("❌ " + (e.reason || e.message || "Transaction failed"), "error");
+  } finally {
+    document.getElementById("swapBtn").disabled = false;
+    document.getElementById("swapBtn").textContent = "Swap";
+  }
+}
+
+window.onload = () => {
+  fetchPrice();
+  setInterval(fetchPrice, 30000);
+};
+
+document.getElementById("walletModal").addEventListener("click", function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
