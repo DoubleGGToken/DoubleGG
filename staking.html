@@ -340,7 +340,12 @@ function closeModal() {
 }
 
 async function connectMetaMask() {
-  if (!window.ethereum) return;
+  if (!window.ethereum) {
+    // Deep link - MetaMask uygulamasini ac
+    const deepLink = 'metamask://dapp/doubleggtoken.github.io/DoubleGG/staking.html';
+    window.location.href = deepLink;
+    return;
+  }
   try {
     provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
