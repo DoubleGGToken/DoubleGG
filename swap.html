@@ -278,15 +278,23 @@ let bnbPrice = 580;
 let dlggPerBnb = 0;
 
 async function fetchPrice() {
-  try {
-    const p = new ethers.JsonRpcProvider("https://bsc-dataseed.binance.org");
-    const router = new ethers.Contract(ROUTER, ROUTER_ABI, p);
-    const amounts = await router.getAmountsOut(ethers.parseEther("1"), [WBNB, DLGG]);
-    dlggPerBnb = parseFloat(ethers.formatUnits(amounts[1], 18));
-    document.getElementById("priceDisplay").textContent = dlggPerBnb.toLocaleString(undefined, {maximumFractionDigits:2}) + " DLGG";
-  } catch(e) {
-    document.getElementById("priceDisplay").textContent = "~";
+  const rpcs = [
+    "https://bsc-dataseed.binance.org",
+    "https://bsc-dataseed1.defibit.io",
+    "https://bsc-dataseed1.ninicoin.io",
+    "https://bsc-dataseed2.defibit.io"
+  ];
+  for (const rpc of rpcs) {
+    try {
+      const p = new ethers.JsonRpcProvider(rpc);
+      const router = new ethers.Contract(ROUTER, ROUTER_ABI, p);
+      const amounts = await router.getAmountsOut(ethers.parseUnits("0.001", 18), [WBNB, DLGG]);
+      dlggPerBnb = parseFloat(ethers.formatUnits(amounts[1], 18)) * 1000;
+      document.getElementById("priceDisplay").textContent = dlggPerBnb.toLocaleString(undefined, {maximumFractionDigits:2}) + " DLGG";
+      return;
+    } catch(e) { continue; }
   }
+  document.getElementById("priceDisplay").textContent = "~";
 }
 
 async function calcOutput() {
