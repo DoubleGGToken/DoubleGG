@@ -278,23 +278,23 @@ let bnbPrice = 580;
 let dlggPerBnb = 0;
 
 async function fetchPrice() {
-  const rpcs = [
-    "https://bsc-dataseed.binance.org",
-    "https://bsc-dataseed1.defibit.io",
-    "https://bsc-dataseed1.ninicoin.io",
-    "https://bsc-dataseed2.defibit.io"
-  ];
-  for (const rpc of rpcs) {
-    try {
-      const p = new ethers.JsonRpcProvider(rpc);
-      const router = new ethers.Contract(ROUTER, ROUTER_ABI, p);
-      const amounts = await router.getAmountsOut(ethers.parseUnits("0.001", 18), [WBNB, DLGG]);
-      dlggPerBnb = parseFloat(ethers.formatUnits(amounts[1], 18)) * 1000;
-      document.getElementById("priceDisplay").textContent = dlggPerBnb.toLocaleString(undefined, {maximumFractionDigits:2}) + " DLGG";
-      return;
-    } catch(e) { continue; }
+  try {
+    // DEXScreener API ile fiyat cek
+    const res = await fetch("https://api.dexscreener.com/latest/dex/tokens/0x8FB2EB5888a46C73264595732e868C2DDc9F5fB8");
+    const data = await res.json();
+    if (data.pairs && data.pairs.length > 0) {
+      const pair = data.pairs[0];
+      const priceUsd = parseFloat(pair.priceUsd);
+      // BNB fiyati yaklasik 580 USD
+      bnbPrice = 580;
+      dlggPerBnb = bnbPrice / priceUsd;
+      document.getElementById("priceDisplay").textContent = dlggPerBnb.toLocaleString(undefined, {maximumFractionDigits:0}) + " DLGG";
+    }
+  } catch(e) {
+    // Fallback: sabit deger
+    dlggPerBnb = 2000000;
+    document.getElementById("priceDisplay").textContent = "~2,000,000 DLGG";
   }
-  document.getElementById("priceDisplay").textContent = "~";
 }
 
 async function calcOutput() {
