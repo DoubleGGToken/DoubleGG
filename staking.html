@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoubleGG | Staking</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<style>
+  :root {
+    --black: #080808;
+    --card: #111111;
+    --gold: #FFD700;
+    --gold2: #FFA500;
+    --white: #f5f5f5;
+    --gray: #888;
+    --border: rgba(255,215,0,0.15);
+    --green: #00c853;
+    --red: #ff5252;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--black); color: var(--white); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+  nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.2rem 3rem; border-bottom: 1px solid var(--border);
+    background: rgba(8,8,8,0.95);
+  }
+  .logo { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--gold); text-decoration: none; }
+  .nav-links { display: flex; gap: 2rem; align-items: center; }
+  .nav-links a { color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color: var(--gold); }
+  .connect-btn {
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    color: #000; font-weight: 700; padding: 0.55rem 1.4rem;
+    border-radius: 50px; border: none; cursor: pointer; font-size: 0.85rem;
+    transition: opacity 0.2s; font-family: 'DM Sans', sans-serif;
+  }
+  .connect-btn:hover { opacity: 0.85; }
+  .connected { background: rgba(0,200,83,0.15); color: var(--green); border: 1px solid rgba(0,200,83,0.3); }
+
+  .hero {
+    text-align: center; padding: 5rem 2rem 3rem;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.06) 0%, transparent 70%);
+  }
+  .hero-tag { font-size: 0.7rem; color: var(--gold); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 1rem; }
+  .hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; margin-bottom: 1rem; }
+  .hero h1 span { background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: var(--gray); font-size: 1rem; max-width: 500px; margin: 0 auto; line-height: 1.7; }
+
+  .main { max-width: 1000px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 3rem; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; text-align: center; }
+  .stat-card-val { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.4rem; }
+  .stat-card-lbl { font-size: 0.75rem; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* STAKING CARD */
+  .stake-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; margin-bottom: 2rem; }
+  .stake-card h2 { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; margin-bottom: 2rem; }
+  .stake-card h2 span { background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .input-group { margin-bottom: 1.5rem; }
+  .input-label { font-size: 0.8rem; color: var(--gray); margin-bottom: 0.6rem; display: flex; justify-content: space-between; }
+  .input-label span { color: var(--gold); cursor: pointer; }
+  .token-input {
+    width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1rem 1.2rem; color: var(--white);
+    font-size: 1.1rem; font-family: 'DM Sans', sans-serif; outline: none;
+    transition: border-color 0.2s;
+  }
+  .token-input:focus { border-color: rgba(255,215,0,0.4); }
+
+  .period-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; margin-bottom: 1.5rem; }
+  @media(max-width: 600px) { .period-grid { grid-template-columns: repeat(3, 1fr); } .stats-row { grid-template-columns: 1fr; } .nav-links a { display: none; } nav { padding: 1rem; } }
+  .period-btn {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.8rem 0.5rem; text-align: center;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .period-btn:hover { border-color: rgba(255,215,0,0.4); }
+  .period-btn.active { background: rgba(255,215,0,0.1); border-color: var(--gold); }
+  .period-days { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: var(--white); }
+  .period-label { font-size: 0.65rem; color: var(--gray); margin: 0.2rem 0; }
+  .period-reward { font-size: 0.75rem; color: var(--gold); font-weight: 700; }
+
+  .reward-preview {
+    background: rgba(255,215,0,0.05); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.2rem 1.5rem; margin-bottom: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .reward-preview-label { font-size: 0.85rem; color: var(--gray); }
+  .reward-preview-val { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--gold); }
+
+  .stake-btn {
+    width: 100%; background: linear-gradient(135deg, var(--gold), var(--gold2));
+    color: #000; font-weight: 700; padding: 1rem; border-radius: 12px;
+    border: none; cursor: pointer; font-size: 1rem; font-family: 'Syne', sans-serif;
+    transition: opacity 0.2s; letter-spacing: 0.5px;
+  }
+  .stake-btn:hover { opacity: 0.85; }
+  .stake-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* MY STAKES */
+  .my-stakes { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; }
+  .my-stakes h2 { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; margin-bottom: 1.5rem; }
+  .my-stakes h2 span { background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .no-stakes { text-align: center; padding: 3rem; color: var(--gray); font-size: 0.9rem; }
+
+  .stake-item {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.2rem 1.5rem; margin-bottom: 1rem;
+    display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: center;
+  }
+  @media(max-width:600px) { .stake-item { grid-template-columns: 1fr 1fr; } }
+  .stake-item-label { font-size: 0.7rem; color: var(--gray); margin-bottom: 0.3rem; text-transform: uppercase; }
+  .stake-item-val { font-size: 0.95rem; font-weight: 700; }
+  .stake-item-val.gold { color: var(--gold); }
+  .stake-item-val.green { color: var(--green); }
+  .stake-item-val.red { color: var(--red); }
+
+  .unstake-btn {
+    background: rgba(0,200,83,0.1); border: 1px solid rgba(0,200,83,0.3);
+    color: var(--green); padding: 0.5rem 1rem; border-radius: 8px;
+    cursor: pointer; font-size: 0.8rem; font-weight: 700;
+    transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+  }
+  .unstake-btn:hover { background: rgba(0,200,83,0.2); }
+  .unstake-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .locked-badge {
+    background: rgba(255,82,82,0.1); border: 1px solid rgba(255,82,82,0.3);
+    color: var(--red); padding: 0.5rem 1rem; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 700;
+  }
+
+  .msg { text-align: center; padding: 1rem; border-radius: 10px; margin-top: 1rem; font-size: 0.85rem; display: none; }
+  .msg.success { background: rgba(0,200,83,0.1); border: 1px solid rgba(0,200,83,0.3); color: var(--green); }
+  .msg.error { background: rgba(255,82,82,0.1); border: 1px solid rgba(255,82,82,0.3); color: var(--red); }
+  .msg.show { display: block; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">DOUBLEGG</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="staking.html" class="active">Staking</a>
+  </div>
+  <button class="connect-btn" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+</nav>
+
+<div class="hero">
+  <div class="hero-tag">Earn Passive Income</div>
+  <h1>Stake $DLGG,<br>Earn <span>Double Rewards</span></h1>
+  <p>Lock your $DLGG tokens and earn guaranteed rewards. The longer you stake, the more you earn.</p>
+</div>
+
+<div class="main">
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-card-val" id="rewardPoolStat">-</div>
+      <div class="stat-card-lbl">Reward Pool</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val" id="totalStakedStat">-</div>
+      <div class="stat-card-lbl">Total Staked</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-val">Up to 30%</div>
+      <div class="stat-card-lbl">Max APR</div>
+    </div>
+  </div>
+
+  <!-- STAKE CARD -->
+  <div class="stake-card">
+    <h2>Stake <span>$DLGG</span></h2>
+
+    <div class="input-group">
+      <div class="input-label">
+        Amount
+        <span onclick="setMax()">MAX</span>
+      </div>
+      <input type="number" class="token-input" id="stakeAmount" placeholder="0.00" oninput="updatePreview()">
+    </div>
+
+    <div class="input-label" style="margin-bottom:0.8rem;">Select Lock Period</div>
+    <div class="period-grid">
+      <div class="period-btn active" onclick="selectPeriod(this, 7, 200)">
+        <div class="period-days">7</div>
+        <div class="period-label">Days</div>
+        <div class="period-reward">+2%</div>
+      </div>
+      <div class="period-btn" onclick="selectPeriod(this, 14, 500)">
+        <div class="period-days">14</div>
+        <div class="period-label">Days</div>
+        <div class="period-reward">+5%</div>
+      </div>
+      <div class="period-btn" onclick="selectPeriod(this, 30, 1000)">
+        <div class="period-days">30</div>
+        <div class="period-label">Days</div>
+        <div class="period-reward">+10%</div>
+      </div>
+      <div class="period-btn" onclick="selectPeriod(this, 90, 2000)">
+        <div class="period-days">90</div>
+        <div class="period-label">Days</div>
+        <div class="period-reward">+20%</div>
+      </div>
+      <div class="period-btn" onclick="selectPeriod(this, 120, 3000)">
+        <div class="period-days">120</div>
+        <div class="period-label">Days</div>
+        <div class="period-reward">+30%</div>
+      </div>
+    </div>
+
+    <div class="reward-preview">
+      <div class="reward-preview-label">Estimated Reward</div>
+      <div class="reward-preview-val" id="rewardPreview">0 DLGG</div>
+    </div>
+
+    <button class="stake-btn" id="stakeBtn" onclick="stakeTokens()">Connect Wallet to Stake</button>
+    <div class="msg" id="stakeMsg"></div>
+  </div>
+
+  <!-- MY STAKES -->
+  <div class="my-stakes">
+    <h2>My <span>Stakes</span></h2>
+    <div id="stakesContainer">
+      <div class="no-stakes">Connect your wallet to see your stakes.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DLGG_ADDRESS = "0x8FB2EB5888a46C73264595732e868C2DDc9F5fB8";
+const STAKING_ADDRESS = "0x39A9C0b32257b12A99B1115C2553584Ee226417d";
+
+const DLGG_ABI = [
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function balanceOf(address account) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns (uint256)"
+];
+
+const STAKING_ABI = [
+  "function stake(uint256 amount, uint256 lockPeriod) external",
+  "function unstake(uint256 stakeIndex) external",
+  "function getUserStakes(address user) view returns (tuple(uint256 amount, uint256 startTime, uint256 lockPeriod, uint256 rewardRate, bool claimed)[])",
+  "function getRewardPool() view returns (uint256)",
+  "function totalStaked() view returns (uint256)"
+];
+
+let provider, signer, userAddress;
+let selectedDays = 7;
+let selectedRate = 200;
+let userBalance = 0n;
+
+const PERIODS = {
+  7: 7 * 24 * 60 * 60,
+  14: 14 * 24 * 60 * 60,
+  30: 30 * 24 * 60 * 60,
+  90: 90 * 24 * 60 * 60,
+  120: 120 * 24 * 60 * 60
+};
+
+async function connectWallet() {
+  try {
+    if (!window.ethereum) { alert("MetaMask not found!"); return; }
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    userAddress = await signer.getAddress();
+
+    const btn = document.getElementById("connectBtn");
+    btn.textContent = userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+    btn.classList.add("connected");
+
+    document.getElementById("stakeBtn").textContent = "Approve & Stake";
+
+    await loadStats();
+    await loadUserStakes();
+    await loadUserBalance();
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function loadStats() {
+  try {
+    const staking = new ethers.Contract(STAKING_ADDRESS, STAKING_ABI, provider);
+    const pool = await staking.getRewardPool();
+    const total = await staking.totalStaked();
+    document.getElementById("rewardPoolStat").textContent = Number(ethers.formatUnits(pool, 18)).toLocaleString() + " DLGG";
+    document.getElementById("totalStakedStat").textContent = Number(ethers.formatUnits(total, 18)).toLocaleString() + " DLGG";
+  } catch(e) { console.error(e); }
+}
+
+async function loadUserBalance() {
+  try {
+    const dlgg = new ethers.Contract(DLGG_ADDRESS, DLGG_ABI, provider);
+    userBalance = await dlgg.balanceOf(userAddress);
+  } catch(e) { console.error(e); }
+}
+
+async function loadUserStakes() {
+  try {
+    const staking = new ethers.Contract(STAKING_ADDRESS, STAKING_ABI, provider);
+    const stakes = await staking.getUserStakes(userAddress);
+    const container = document.getElementById("stakesContainer");
+
+    if (stakes.length === 0) {
+      container.innerHTML = '<div class="no-stakes">You have no active stakes yet.</div>';
+      return;
+    }
+
+    let html = "";
+    const now = Math.floor(Date.now() / 1000);
+
+    stakes.forEach((s, i) => {
+      if (s.claimed) return;
+      const amount = Number(ethers.formatUnits(s.amount, 18)).toLocaleString();
+      const reward = (Number(ethers.formatUnits(s.amount, 18)) * Number(s.rewardRate) / 10000).toFixed(2);
+      const unlockTime = Number(s.startTime) + Number(s.lockPeriod);
+      const isUnlocked = now >= unlockTime;
+      const days = Math.ceil(Number(s.lockPeriod) / 86400);
+      const unlockDate = new Date(unlockTime * 1000).toLocaleDateString();
+
+      html += `
+        <div class="stake-item">
+          <div>
+            <div class="stake-item-label">Amount</div>
+            <div class="stake-item-val gold">${amount} DLGG</div>
+          </div>
+          <div>
+            <div class="stake-item-label">Period</div>
+            <div class="stake-item-val">${days} Days</div>
+          </div>
+          <div>
+            <div class="stake-item-label">Reward / Unlock</div>
+            <div class="stake-item-val green">+${reward} DLGG</div>
+            <div style="font-size:0.72rem;color:var(--gray);">${unlockDate}</div>
+          </div>
+          <div>
+            ${isUnlocked
+              ? `<button class="unstake-btn" onclick="unstakeTokens(${i})">Unstake ✓</button>`
+              : `<div class="locked-badge">🔒 Locked</div>`
+            }
+          </div>
+        </div>`;
+    });
+
+    container.innerHTML = html || '<div class="no-stakes">No active stakes.</div>';
+  } catch(e) { console.error(e); }
+}
+
+function selectPeriod(el, days, rate) {
+  document.querySelectorAll(".period-btn").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  selectedDays = days;
+  selectedRate = rate;
+  updatePreview();
+}
+
+function updatePreview() {
+  const amount = parseFloat(document.getElementById("stakeAmount").value) || 0;
+  const reward = (amount * selectedRate / 10000).toFixed(2);
+  document.getElementById("rewardPreview").textContent = reward + " DLGG";
+}
+
+function setMax() {
+  if (!userBalance) return;
+  document.getElementById("stakeAmount").value = ethers.formatUnits(userBalance, 18);
+  updatePreview();
+}
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = "msg " + type + " show";
+  setTimeout(() => el.classList.remove("show"), 5000);
+}
+
+async function stakeTokens() {
+  if (!signer) { connectWallet(); return; }
+  const amountInput = document.getElementById("stakeAmount").value;
+  if (!amountInput || parseFloat(amountInput) <= 0) { showMsg("stakeMsg", "Please enter an amount.", "error"); return; }
+
+  const amount = ethers.parseUnits(amountInput, 18);
+  const lockPeriod = PERIODS[selectedDays];
+
+  try {
+    document.getElementById("stakeBtn").disabled = true;
+    document.getElementById("stakeBtn").textContent = "Approving...";
+
+    const dlgg = new ethers.Contract(DLGG_ADDRESS, DLGG_ABI, signer);
+    const approveTx = await dlgg.approve(STAKING_ADDRESS, amount);
+    await approveTx.wait();
+
+    document.getElementById("stakeBtn").textContent = "Staking...";
+
+    const staking = new ethers.Contract(STAKING_ADDRESS, STAKING_ABI, signer);
+    const stakeTx = await staking.stake(amount, lockPeriod);
+    await stakeTx.wait();
+
+    showMsg("stakeMsg", "✅ Successfully staked! Your rewards will be ready in " + selectedDays + " days.", "success");
+    document.getElementById("stakeAmount").value = "";
+    updatePreview();
+    await loadStats();
+    await loadUserStakes();
+    await loadUserBalance();
+  } catch(e) {
+    showMsg("stakeMsg", "❌ Error: " + (e.reason || e.message), "error");
+  } finally {
+    document.getElementById("stakeBtn").disabled = false;
+    document.getElementById("stakeBtn").textContent = "Approve & Stake";
+  }
+}
+
+async function unstakeTokens(index) {
+  if (!signer) return;
+  try {
+    const staking = new ethers.Contract(STAKING_ADDRESS, STAKING_ABI, signer);
+    const tx = await staking.unstake(index);
+    await tx.wait();
+    showMsg("stakeMsg", "✅ Successfully unstaked! Tokens + rewards sent to your wallet.", "success");
+    await loadStats();
+    await loadUserStakes();
+    await loadUserBalance();
+  } catch(e) {
+    showMsg("stakeMsg", "❌ Error: " + (e.reason || e.message), "error");
+  }
+}
+
+// Auto-load stats
+window.onload = async () => {
+  try {
+    const p = new ethers.JsonRpcProvider("https://bsc-dataseed.binance.org");
+    const staking = new ethers.Contract(STAKING_ADDRESS, STAKING_ABI, p);
+    const pool = await staking.getRewardPool();
+    const total = await staking.totalStaked();
+    document.getElementById("rewardPoolStat").textContent = Number(ethers.formatUnits(pool, 18)).toLocaleString() + " DLGG";
+    document.getElementById("totalStakedStat").textContent = Number(ethers.formatUnits(total, 18)).toLocaleString() + " DLGG";
+  } catch(e) {}
+};
+</script>
+</body>
+</html>
