@@ -193,6 +193,9 @@
   .rm-items { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
   .rm-items li { font-size: 0.87rem; color: var(--gray); padding-left: 1rem; position: relative; }
   .rm-items li::before { content: '·'; position: absolute; left: 0; color: var(--gold); font-size: 1.2rem; line-height: 1; }
+  .rm-item.done .rm-items li { text-decoration: line-through; color: #555; }
+  .rm-item.done .rm-items li::before { content: '✓'; color: var(--gold); font-size: 0.85rem; line-height: 1.4; }
+  .rm-item.done .rm-title { color: var(--gold); }
 
   /* FOOTER */
   footer { border-top: 1px solid var(--border); padding: 3rem 2rem; text-align: center; }
@@ -350,16 +353,85 @@
 <div class="section">
   <div class="eyebrow">Tokenomics</div>
   <h2><span class="gold">$DLGG</span> Token Info</h2>
-  <div class="tok-grid">
-    <div class="tok-card"><div class="tok-val">100M</div><div class="tok-lbl">Total Supply</div></div>
-    <div class="tok-card"><div class="tok-val">0.25%</div><div class="tok-lbl">Buy Tax</div></div>
-    <div class="tok-card"><div class="tok-val">0.25%</div><div class="tok-lbl">Sell Tax</div></div>
-    <div class="tok-card"><div class="tok-val">20%</div><div class="tok-lbl">Liquidity</div></div>
-    <div class="tok-card"><div class="tok-val">80%</div><div class="tok-lbl">Team & Rewards</div></div>
-    <div class="tok-card"><div class="tok-val">🔒</div><div class="tok-lbl">No Minting</div></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-top:3rem;align-items:center;">
+    <!-- PASTA GRAFİK -->
+    <div style="display:flex;justify-content:center;">
+      <div style="position:relative;width:280px;height:280px;">
+        <canvas id="tokChart" width="280" height="280"></canvas>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+          <div style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;color:#FFD700;">100M</div>
+          <div style="font-size:0.7rem;color:#888;letter-spacing:1px;">TOTAL SUPPLY</div>
+        </div>
+      </div>
+    </div>
+    <!-- LEGEND -->
+    <div style="display:flex;flex-direction:column;gap:0.8rem;">
+      <div style="display:flex;align-items:center;gap:1rem;background:#111;border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:0.8rem 1rem;">
+        <div style="width:14px;height:14px;border-radius:3px;background:#FFD700;flex-shrink:0;"></div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:0.9rem;">Team & Reserve</div><div style="font-size:0.75rem;color:#888;">45,000,000 DLGG</div></div>
+        <div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:800;color:#FFD700;">45%</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;background:#111;border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:0.8rem 1rem;">
+        <div style="width:14px;height:14px;border-radius:3px;background:#FFA500;flex-shrink:0;"></div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:0.9rem;">Liquidity Pool</div><div style="font-size:0.75rem;color:#888;">20,000,000 DLGG</div></div>
+        <div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:800;color:#FFA500;">20%</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;background:#111;border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:0.8rem 1rem;">
+        <div style="width:14px;height:14px;border-radius:3px;background:#00c853;flex-shrink:0;"></div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:0.9rem;">Development</div><div style="font-size:0.75rem;color:#888;">15,000,000 DLGG</div></div>
+        <div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:800;color:#00c853;">15%</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;background:#111;border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:0.8rem 1rem;">
+        <div style="width:14px;height:14px;border-radius:3px;background:#9b5cff;flex-shrink:0;"></div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:0.9rem;">Staking Rewards</div><div style="font-size:0.75rem;color:#888;">10,000,000 DLGG</div></div>
+        <div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:800;color:#9b5cff;">10%</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;background:#111;border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:0.8rem 1rem;">
+        <div style="width:14px;height:14px;border-radius:3px;background:#ff5252;flex-shrink:0;"></div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:0.9rem;">Marketing & CEX</div><div style="font-size:0.75rem;color:#888;">10,000,000 DLGG</div></div>
+        <div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:800;color:#ff5252;">10%</div>
+      </div>
+      <div style="padding:0.8rem 1rem;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.2);border-radius:10px;text-align:center;">
+        <span style="font-size:0.8rem;color:#888;">Buy/Sell Tax: </span><span style="font-weight:700;color:#FFD700;">0.25%</span>
+        <span style="margin:0 0.5rem;color:#444;">|</span>
+        <span style="font-size:0.8rem;color:#888;">Minting: </span><span style="font-weight:700;color:#00c853;">Disabled 🔒</span>
+      </div>
+    </div>
   </div>
 </div>
 </div>
+
+<script>
+window.addEventListener("load", function() {
+  var canvas = document.getElementById("tokChart");
+  if (!canvas) return;
+  var ctx = canvas.getContext("2d");
+  var cx=140, cy=140, r=120, inner=75;
+  var data = [
+    {pct:0.45, color:"#FFD700"},
+    {pct:0.20, color:"#FFA500"},
+    {pct:0.15, color:"#00c853"},
+    {pct:0.10, color:"#9b5cff"},
+    {pct:0.10, color:"#ff5252"},
+  ];
+  var start = -Math.PI/2;
+  data.forEach(function(d) {
+    var end = start + d.pct*2*Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,end);
+    ctx.closePath();
+    ctx.fillStyle = d.color;
+    ctx.fill();
+    start = end;
+  });
+  ctx.beginPath();
+  ctx.arc(cx,cy,inner,0,2*Math.PI);
+  ctx.fillStyle = "#080808";
+  ctx.fill();
+});
+</script>
 
 <!-- ROADMAP -->
 <div id="roadmap">
@@ -374,8 +446,13 @@
         <li>$DLGG token deployed on BNB Chain</li>
         <li>Contract verified on BscScan</li>
         <li>PancakeSwap liquidity pool live</li>
+        <li>Staking contract deployed (up to 30% APY)</li>
         <li>DEXScreener listing</li>
+        <li>CoinMarketCap listing applied</li>
         <li>Twitter & Telegram community launched</li>
+        <li>Website & Whitepaper published</li>
+        <li>DoubleGG App development started</li>
+        <li>Duel system with 5 mini games built</li>
       </ul>
     </div>
     <div class="rm-item">
